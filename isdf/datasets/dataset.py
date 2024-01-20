@@ -434,3 +434,56 @@ class ROSSubscriber(Dataset):
 #         }
 
 #         return sample
+            
+class NTFields(Dataset):
+    def __init__(
+        self,
+        root_dir,
+        traj_file,
+        rgb_transform=None,
+        depth_transform=None,
+        col_ext=None,
+        noisy_depth=None,
+        distortion_coeffs=None,
+        camera_matrix=None,
+    ):
+        abspath = os.path.abspath(sys.argv[0])
+        dname = os.path.dirname(abspath)
+        os.chdir(dname)
+        self.root_dir = root_dir
+        self.rgb_dir = root_dir
+        self.depth_dir = root_dir
+        traj_file = os.path.join(root_dir, "traj.txt")
+        if traj_file is not None:
+            self.Ts = np.loadtxt(traj_file)
+            self.Ts = self.Ts[:, :].reshape(-1, 4, 4)
+        self.rgb_transform = rgb_transform
+        self.depth_transform = depth_transform
+        self.col_ext = col_ext
+
+    def __len__(self):
+        return self.Ts.shape[0]
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        depth_file = os.path.join(self.depth_dir, "depth" + str(idx).zfill(6) + ".npy")
+        rgb_file = os.path.join(self.rgb_dir, "frame" + str(idx).zfill(6) + self.col_ext)
+
+        depth = np.load(depth_file)
+        image = cv2.imread(rgb_file)
+
+        T = None
+        if self.Ts is not None:
+            T = self.Ts[idx]
+
+        sample = {"image": image, "depth": depth, "T": T}
+
+        if self.rgb_transform:
+            sample["image"] = self.rgb_transform(sample["image"])
+
+        if self.depth_transform:
+            sample["depth"] = self.depth_transform(sample["depth"])
+
+        return sample

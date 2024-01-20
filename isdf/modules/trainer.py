@@ -499,6 +499,12 @@ class Trainer():
             self.up = np.array([0., 0., 1.])
             ims_file = self.ims_file
             camera_matrix = np.array([[self.fx, 0.0, self.cx], [0.0, self.fy, self.cy], [0.0, 0.0, 1.0]])
+        elif self.dataset_format == "ntfields":
+            dataset_class = dataset.NTFields 
+            self.up = np.array([0., 0., 1.])
+            col_ext = ".png"
+            ims_file = self.config["dataset"]["seq_dir"]
+            self.traj_file = None
 
         self.scene_dataset = dataset_class(
             ims_file,
